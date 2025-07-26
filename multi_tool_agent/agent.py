@@ -1,71 +1,32 @@
 import datetime
 from zoneinfo import ZoneInfo
-from google.adk.agents import Agent
 
+from google.adk.agents import Agent
+from google.adk.tools import agent_tool, google_search
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
 
-def get_weather(city: str) -> dict:
-    """Retrieves the current weather report for a specified city.
+GEMINI_MODEL = "gemini-2.0-flash"
 
-    Args:
-        city (str): The name of the city for which to retrieve the weather report.
-
-    Returns:
-        dict: status and result or error msg.
-    """
-    if city.lower() == "new york":
-        return {
-            "status": "success",
-            "report": (
-                "The weather in New York is sunny with a temperature of 25 degrees"
-                " Celsius (77 degrees Fahrenheit)."
-            ),
-        }
-    else:
-        return {
-            "status": "error",
-            "error_message": f"Weather information for '{city}' is not available.",
-        }
-
-
-def get_current_time(city: str) -> dict:
-    """Returns the current time in a specified city.
-
-    Args:
-        city (str): The name of the city for which to retrieve the current time.
-
-    Returns:
-        dict: status and result or error msg.
-    """
-
-    if city.lower() == "new york":
-        tz_identifier = "America/New_York"
-    else:
-        return {
-            "status": "error",
-            "error_message": (
-                f"Sorry, I don't have timezone information for {city}."
-            ),
-        }
-
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    report = (
-        f'The current time in {city} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}'
-    )
-    return {"status": "success", "report": report}
-
+search_agent = Agent(
+    model=GEMINI_MODEL,
+    name='SearchAgent',
+    instruction="""
+    You're a specialist in Google Search
+    """,
+    tools=[google_search],
+)
 
 root_agent = Agent(
     name="personal_finance_agent",
-    model="gemini-2.0-flash",
+    model=GEMINI_MODEL,
     description=(
-        "Agent to answer questions about personal finance"
+        "Agent to answer questions about personal finance and provide stock recommendations"
     ),
     instruction=(
-        "You are a helpful agent who can answer user questions about thei financial data by accessing functions from FiMoney's MCP server"
+        "You are a helpful agent who can answer user questions about thei financial data and provide recommendations on stocks to buy or sell by accessing functions from FiMoney's MCP server and the internet"
     ),
     tools=[
+        agent_tool.AgentTool(agent=search_agent),
         MCPToolset(
             connection_params=StdioServerParameters(
                 command='npx',
