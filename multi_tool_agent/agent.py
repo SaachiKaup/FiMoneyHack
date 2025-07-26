@@ -2,6 +2,8 @@ import datetime
 from zoneinfo import ZoneInfo
 from google.adk.agents import Agent
 
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+
 def get_weather(city: str) -> dict:
     """Retrieves the current weather report for a specified city.
 
@@ -55,13 +57,24 @@ def get_current_time(city: str) -> dict:
 
 
 root_agent = Agent(
-    name="weather_time_agent",
+    name="personal_finance_agent",
     model="gemini-2.0-flash",
     description=(
-        "Agent to answer questions about the time and weather in a city."
+        "Agent to answer questions about personal finance"
     ),
     instruction=(
-        "You are a helpful agent who can answer user questions about the time and weather in a city."
+        "You are a helpful agent who can answer user questions about thei financial data by accessing functions from FiMoney's MCP server"
     ),
-    tools=[get_weather, get_current_time],
+    tools=[
+        MCPToolset(
+            connection_params=StdioServerParameters(
+                command='npx',
+                args=[
+                    "mcp-remote",
+                    "http://localhost:8080/mcp/stream",
+                    "--allow-http"
+                ],
+            ),
+        )
+    ]
 )
